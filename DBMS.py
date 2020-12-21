@@ -13,11 +13,9 @@ from tkinter import font
 from tkinter.scrolledtext import ScrolledText
 
 class AggregateInterface(object):
-    def __init__(self, ip, user, password, database, font_style, table_name):
-        self.ip=ip
-        self.user=user
-        self.password=password
-        self.database=database
+    def __init__(self, connection, cursor, font_style, table_name):
+        self.connection = connection
+        self.cursor = cursor
         self.font_style = font_style
         self.table_name = table_name
         
@@ -52,85 +50,63 @@ class AggregateInterface(object):
         self.total_record(table_name)
     
     def display_condition(self):
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            
-            # Display select table
-            cur.execute(f'SHOW COLUMNS FROM {self.table_name}')
-            table_columns = cur.fetchall()
-            # Combo
-            combo_label, self.column_combo = [], []
-            for i in range(len(table_columns)):
-                combo_label.append(tk.Label(self.window, text=table_columns[i][0], font=self.font_style))
-                combo_label[i].place(x=20+190*(i), y=130, height=30, width=190)
-                cur.execute(f'SELECT DISTINCT {table_columns[i][0]} FROM {self.table_name}')
-                self.column_combo.append(ttk.Combobox(self.window, values=cur.fetchall(), font=self.font_style))
-                self.column_combo[i].place(x=20+190*(i), y=160, height=30, width=190)   
-        finally:
-            cur.close()
-    
+        # Display select table
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_name}')
+        table_columns = self.cursor.fetchall()
+        # Combo
+        combo_label, self.column_combo = [], []
+        for i in range(len(table_columns)):
+            combo_label.append(tk.Label(self.window, text=table_columns[i][0], font=self.font_style))
+            combo_label[i].place(x=20+190*(i), y=130, height=30, width=190)
+            self.cursor.execute(f'SELECT DISTINCT {table_columns[i][0]} FROM {self.table_name}')
+            self.column_combo.append(ttk.Combobox(self.window, values=self.cursor.fetchall(), font=self.font_style))
+            self.column_combo[i].place(x=20+190*(i), y=160, height=30, width=190)   
+
     def total_record(self, table_name):
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            
-            # Show total number of record
-            cur.execute(f'SELECT COUNT(*) FROM {self.table_name}')
-            count_total = cur.fetchone()[0]
-            self.record_label.config(text=f'Total Record: {count_total}')           
-        finally:
-            cur.close() 
-        
+        # Show total number of record
+        self.cursor.execute(f'SELECT COUNT(*) FROM {self.table_name}')
+        count_total = self.cursor.fetchone()[0]
+        self.record_label.config(text=f'Total Record: {count_total}')           
+
     def condition(self):
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            cur.execute(f'SHOW COLUMNS FROM {self.table_name}')
-            table_columns = cur.fetchall()
-            
-            # count
-            for i in range(len(self.column_combo)):
-                if self.column_combo[i].get():
-                    self.condition = f'{table_columns[i][0]}="{self.column_combo[i].get()}"'
-                    cur.execute(f'SELECT COUNT({table_columns[i][0]}) FROM {self.table_name} WHERE {self.condition}')
-            count_condition = cur.fetchone()[0]
-            self.count_result = tk.Label(self.window, text=f'Record: {count_condition}', background='gray80', font=self.font_style)
-            self.count_result.place(x=630, y=360, height=30, width=150)
-            
-            # find int atribute for sum, max, min, avg.
-            aggregate_list = ['Sum', 'Max', 'Min', 'Avg']
-            for i in range(len(table_columns)):
-                self.agg_result = []
-                if table_columns[i][1]=='int':
-                    for agg in range(len(aggregate_list)):
-                        cur.execute(f'SELECT {aggregate_list[agg]}({table_columns[i][0]}) FROM {self.table_name}')
-                        agg_total = cur.fetchone()[0]
-                        cur.execute(f'SELECT {aggregate_list[agg]}({table_columns[i][0]}) FROM {self.table_name} WHERE {self.condition}')
-                        agg_condition = cur.fetchone()[0]
-                        self.agg_result.append(tk.Label(self.window, 
-                                                        text=f'{aggregate_list[agg]}: {round(agg_condition, 0)}/{round(agg_total, 0)}', 
-                                                        background='gray80', 
-                                                        font=self.font_style))
-                        self.agg_result[agg].place(x=20+190*i, y=240+30*agg, height=30, width=190)         
-        finally:
-            cur.close() 
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_name}')
+        table_columns = self.cursor.fetchall()
+        
+        # count
+        for i in range(len(self.column_combo)):
+            if self.column_combo[i].get():
+                self.condition = f'{table_columns[i][0]}="{self.column_combo[i].get()}"'
+                self.cursor.execute(f'SELECT COUNT({table_columns[i][0]}) FROM {self.table_name} WHERE {self.condition}')
+        count_condition = self.cursor.fetchone()[0]
+        self.count_result = tk.Label(self.window, text=f'Record: {count_condition}', background='gray80', font=self.font_style)
+        self.count_result.place(x=630, y=360, height=30, width=150)
+        
+        # find int atribute for sum, max, min, avg.
+        aggregate_list = ['Sum', 'Max', 'Min', 'Avg']
+        for i in range(len(table_columns)):
+            self.agg_result = []
+            if table_columns[i][1]=='int':
+                for agg in range(len(aggregate_list)):
+                    self.cursor.execute(f'SELECT {aggregate_list[agg]}({table_columns[i][0]}) FROM {self.table_name}')
+                    agg_total = self.cursor.fetchone()[0]
+                    self.cursor.execute(f'SELECT {aggregate_list[agg]}({table_columns[i][0]}) FROM {self.table_name} WHERE {self.condition}')
+                    agg_condition = self.cursor.fetchone()[0]
+                    self.agg_result.append(tk.Label(self.window, 
+                                                    text=f'{aggregate_list[agg]}: {round(agg_condition, 0)}/{round(agg_total, 0)}', 
+                                                    background='gray80', 
+                                                    font=self.font_style))
+                    self.agg_result[agg].place(x=20+190*i, y=240+30*agg, height=30, width=190)         
 
     def clean_value(self):
         for i in range(len(self.column_combo)):
             self.column_combo[i].set('')
         
 class ButtonInterface(object):
-    def __init__(self, ip, user, password, database, font_style):
-        self.ip=ip
-        self.user=user
-        self.password=password
-        self.database=database
+    def __init__(self, connection, cursor, font_style):
+        self.connection = connection
+        self.cursor = cursor
         self.font_style = font_style
-        
+
         self.window = tk.Toplevel()
         self.window.wm_title("Button Interface")
         self.window.geometry('800x700')
@@ -179,134 +155,115 @@ class ButtonInterface(object):
         self.display_table_combo()
         
     def display_table_combo(self):
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            cur.execute(f'SELECT * FROM information_schema.tables WHERE table_schema = "delivery_db"')
-            table_name = cur.fetchall()
-            self.table_combo = ttk.Combobox(self.window, font=self.font_style,
-                                            values=[table_name[i][2] for i in range(len(table_name))])
-            self.table_combo.place(x=120, y=20, height=30, width=200)
-        finally:
-            cur.close()
+        self.cursor.execute(f'SELECT * FROM information_schema.tables WHERE table_schema = "delivery_db"')
+        table_name = self.cursor.fetchall()
+        self.table_combo = ttk.Combobox(self.window, font=self.font_style,
+                                        values=[table_name[i][2] for i in range(len(table_name))])
+        self.table_combo.place(x=120, y=20, height=30, width=200)
             
     def send_search(self):
-        self.select_button = tk.Button(self.window, text='Select', font=self.font_style, command=self.select_fun)          
-        self.select_button.place(x=720, y=15, width=60)
+        self.select_button = tk.Button(self.window, text='Condition Search', font=self.font_style, command=self.condi_search_fun)          
+        self.select_button.place(x=620, y=50, width=160)
         self.select_button.config(background='light sky blue')
         
         for i in range(len(self.label)):
             self.label[i].config(text='')
         self.listBox.delete(*self.listBox.get_children())
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-    
-            # Display select table
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            table_columns = cur.fetchall()
-            self.listBox.config(columns=table_columns)
-            for i in range(len(table_columns)):
-                self.listBox.heading(i, text=table_columns[i][0])
-                self.listBox.column(i, stretch='True', anchor='center', width='190')
-          
-            # Entry
-            text, self.entry = [], []
-            for i in range(len(table_columns)):
-                self.label[i].config(text=table_columns[i][0])
-                text.append(tk.StringVar())
-                self.entry.append(tk.Entry(self.window, textvariable=text[i], font=self.font_style))
-                self.entry[i].place(x=20+190*(i), y=150, height=40, width=190)
+        # Display select table
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        table_columns = self.cursor.fetchall()
+        self.listBox.config(columns=table_columns)
+        for i in range(len(table_columns)):
+            self.listBox.heading(i, text=table_columns[i][0])
+            self.listBox.column(i, stretch='True', anchor='center', width='190')
+        
+        # Entry
+        text, self.entry = [], []
+        for i in range(len(table_columns)):
+            self.label[i].config(text=table_columns[i][0])
+            text.append(tk.StringVar())
+            self.entry.append(tk.Entry(self.window, textvariable=text[i], font=self.font_style))
+            self.entry[i].place(x=20+190*(i), y=150, height=40, width=190)
                 
-            # Buttons
-            function_label = tk.Label(self.window, text="Function", font=self.font_style, background='goldenrod1')
-            function_label.place(x=20, y=200, height=30, width=150) 
-            
-            insert_button = tk.Button(self.window, text="Insert", font=self.font_style, command=self.insert)
-            insert_button.place(x=200, y=200, height=30, width=100) 
-            insert_button.config(background='Gold')
-            
-            delete_button = tk.Button(self.window, text="Delete", font=self.font_style, command=self.delete)
-            delete_button.place(x=330, y=200, height=30, width=100) 
-            delete_button.config(background='Gold')
-            
-            update_button = tk.Button(self.window, text="Update", font=self.font_style, command=self.update)
-            update_button.place(x=460, y=200, height=30, width=100) 
-            update_button.config(background='Gold')
-            
-            aggregate_button = tk.Button(self.window, text="Aggregate", font=self.font_style, command=self.aggregate)
-            aggregate_button.place(x=590, y=200, height=30, width=100) 
-            aggregate_button.config(background='Gold')
-            
-            clean_button = tk.Button(self.window, text="Clean", font=self.font_style, command=self.clean)
-            clean_button.place(x=720, y=200, height=50, width=60) 
-            
-            self.select_columns_combo = ttk.Combobox(self.window, font=self.font_style)          
-            self.select_columns_combo.place(x=420, y=400, height=30, width=120)
-            
-            self.agg_combo = ttk.Combobox(self.window, font=self.font_style)        
-            self.agg_combo.place(x=380, y=300, height=30, width=100)
-            
-            cur.execute(f'SELECT * FROM {self.table_combo.get()}')
-            table_result = cur.fetchall()
-            if table_result:
-                for row in table_result:
-                    self.listBox.insert('', 'end', values=row)
-            self.status_label.configure(text = '')
-            self.status_label.configure(background = 'white')
-            
-            # Having field
-            self.having_display()
-            self.groupby_combo.config(state='disable')
-            self.ope_combo.config(state='disable')
-            self.condition_entry.config(state='disable')
-            self.having_button.config(state='disable')
-            self.havcol_combo.config(state='disable')
-            self.agg_combo.config(state='disable')
-            for i in range(len(table_columns)):
-                if table_columns[i][1]=='int':
-                    self.groupby_combo.config(state='normal')
-                    self.ope_combo.config(state='normal')
-                    self.condition_entry.config(state='normal')
-                    self.having_button.config(state='normal')
-                    self.havcol_combo.config(state='normal')
-                    self.agg_combo.config(state='normal')
-                    break
-            
-            # Nested field
-            self.in_display()
-            self.exist_display()           
+        # Buttons
+        function_label = tk.Label(self.window, text="Function", font=self.font_style, background='goldenrod1')
+        function_label.place(x=20, y=200, height=30, width=150) 
+        
+        insert_button = tk.Button(self.window, text="Insert", font=self.font_style, command=self.insert)
+        insert_button.place(x=200, y=200, height=30, width=100) 
+        insert_button.config(background='Gold')
+        
+        delete_button = tk.Button(self.window, text="Delete", font=self.font_style, command=self.delete)
+        delete_button.place(x=330, y=200, height=30, width=100) 
+        delete_button.config(background='Gold')
+        
+        update_button = tk.Button(self.window, text="Update", font=self.font_style, command=self.update)
+        update_button.place(x=460, y=200, height=30, width=100) 
+        update_button.config(background='Gold')
+        
+        aggregate_button = tk.Button(self.window, text="Aggregate", font=self.font_style, command=self.aggregate)
+        aggregate_button.place(x=590, y=200, height=30, width=100) 
+        aggregate_button.config(background='Gold')
+        
+        clean_button = tk.Button(self.window, text="Clean", font=self.font_style, command=self.clean)
+        clean_button.place(x=720, y=200, height=50, width=60) 
+        
+        self.select_columns_combo = ttk.Combobox(self.window, font=self.font_style)          
+        self.select_columns_combo.place(x=420, y=400, height=30, width=120)
+        
+        self.agg_combo = ttk.Combobox(self.window, font=self.font_style)        
+        self.agg_combo.place(x=380, y=300, height=30, width=100)
+        
+        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()}')
+        table_result = self.cursor.fetchall()
+        if table_result:
+            for row in table_result:
+                self.listBox.insert('', 'end', values=row)
+        self.status_label.configure(text = '')
+        self.status_label.configure(background = 'white')
+        
+        # Having field
+        self.having_display()
+        self.groupby_combo.config(state='disable')
+        self.ope_combo.config(state='disable')
+        self.condition_entry.config(state='disable')
+        self.having_button.config(state='disable')
+        self.havcol_combo.config(state='disable')
+        self.agg_combo.config(state='disable')
+        for i in range(len(table_columns)):
+            if table_columns[i][1]=='int':
+                self.groupby_combo.config(state='normal')
+                self.ope_combo.config(state='normal')
+                self.condition_entry.config(state='normal')
+                self.having_button.config(state='normal')
+                self.havcol_combo.config(state='normal')
+                self.agg_combo.config(state='normal')
+                break
+        
+        # Nested field
+        self.in_display()
+        self.exist_display()           
         # except:
         #     self.status_label.configure(text = 'Please select a table', fg='white')
         #     self.status_label.configure(background = 'orange red')
-        finally:
-            cur.close()
-            
-    def select_fun(self):
+
+    def condi_search_fun(self):
         self.listBox.delete(*self.listBox.get_children())
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            select_value = {}
-            condition = ''
-            table_columns = cur.fetchall()
-            for i in range(len(table_columns)):
-                select_value[table_columns[i][0]] = self.entry[i].get()
-                if select_value[table_columns[i][0]] != '' and condition=='':
-                    condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-                elif select_value[table_columns[i][0]] != '':
-                    condition = condition + ' AND ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-            cur.execute(f'SELECT * FROM {self.table_combo.get()} WHERE {condition}')
-            table_result = cur.fetchall()
-            if table_result:
-                for row in table_result:
-                    self.listBox.insert('', 'end', values=row)
-        finally:
-            cur.close()
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        select_value = {}
+        condition = ''
+        table_columns = self.cursor.fetchall()
+        for i in range(len(table_columns)):
+            select_value[table_columns[i][0]] = self.entry[i].get()
+            if select_value[table_columns[i][0]] != '' and condition=='':
+                condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
+            elif select_value[table_columns[i][0]] != '':
+                condition = condition + ' AND ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
+        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()} WHERE {condition}')
+        table_result = self.cursor.fetchall()
+        if table_result:
+            for row in table_result:
+                self.listBox.insert('', 'end', values=row)
     
     def clean(self):    
         for i in range(len(self.entry)):
@@ -334,59 +291,39 @@ class ButtonInterface(object):
         self.exist_button.config(background='medium spring green')
         self.equal_label = tk.Label(self.window, text='=', font=self.font_style, background='pale green')
         self.equal_label.place(x=550, y=400, height=30, width=30)
+
+        # Display select table
+        self.cursor.execute(f'SELECT * FROM information_schema.tables WHERE table_schema = "delivery_db"')
+        table_name = self.cursor.fetchall()
+        self.select_table_combo = ttk.Combobox(self.window, font=self.font_style, 
+                                                values=[table_name[i][2] for i in range(len(table_name))])          
+        self.select_table_combo.place(x=310, y=400, height=30, width=100)
+        self.select_table_combo.bind("<<ComboboxSelected>>", self.create_column_combo)
         
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-    
-            # Display select table
-            cur.execute(f'SELECT * FROM information_schema.tables WHERE table_schema = "delivery_db"')
-            table_name = cur.fetchall()
-            self.select_table_combo = ttk.Combobox(self.window, font=self.font_style, 
-                                                  values=[table_name[i][2] for i in range(len(table_name))])          
-            self.select_table_combo.place(x=310, y=400, height=30, width=100)
-            self.select_table_combo.bind("<<ComboboxSelected>>", self.create_column_combo)
-            
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            current_table_columns = cur.fetchall()
-            self.current_columns_combo = ttk.Combobox(self.window, font=self.font_style, 
-                                                     values=[current_table_columns[i][0] for i in range(len(current_table_columns))])          
-            self.current_columns_combo.place(x=590, y=400, height=30, width=120)            
-        finally:
-            cur.close() 
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        current_table_columns = self.cursor.fetchall()
+        self.current_columns_combo = ttk.Combobox(self.window, font=self.font_style, 
+                                                    values=[current_table_columns[i][0] for i in range(len(current_table_columns))])          
+        self.current_columns_combo.place(x=590, y=400, height=30, width=120)            
             
     def exist_func(self):
         self.listBox.delete(*self.listBox.get_children())
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            cur.execute(f'SELECT * FROM {self.table_combo.get()} \
-                        WHERE {self.exist_combo.get()} \
-                        (SELECT * FROM {self.select_table_combo.get()} \
-                         WHERE {self.table_combo.get()}.{self.current_columns_combo.get()}={self.select_table_combo.get()}.{self.select_columns_combo.get()})')
-            table_result = cur.fetchall()
-            if table_result:
-                for row in table_result:
-                    self.listBox.insert('', 'end', values=row)
-            self.status_label.configure(text = '')
-            self.status_label.configure(background = 'white')            
-        finally:
-            cur.close() 
+        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()} \
+                    WHERE {self.exist_combo.get()} \
+                    (SELECT * FROM {self.select_table_combo.get()} \
+                        WHERE {self.table_combo.get()}.{self.current_columns_combo.get()}={self.select_table_combo.get()}.{self.select_columns_combo.get()})')
+        table_result = self.cursor.fetchall()
+        if table_result:
+            for row in table_result:
+                self.listBox.insert('', 'end', values=row)
+        self.status_label.configure(text = '')
+        self.status_label.configure(background = 'white')            
             
     def create_column_combo(self, event):
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-    
-            cur.execute(f'SHOW COLUMNS FROM {self.select_table_combo.get()}')
-            select_table_columns = cur.fetchall()
-            self.select_columns_combo['values'] = [select_table_columns[i][0] for i in range(len(select_table_columns))]
-        finally:
-            cur.close()
-            
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.select_table_combo.get()}')
+        select_table_columns = self.cursor.fetchall()
+        self.select_columns_combo['values'] = [select_table_columns[i][0] for i in range(len(select_table_columns))]
+
     def in_display(self):
         self.nested_label = tk.Label(self.window, text='Nested', font=self.font_style, background='pale green')
         self.nested_label.place(x=20, y=360, height=70, width=75)
@@ -399,37 +336,23 @@ class ButtonInterface(object):
         self.in_button = tk.Button(self.window, text='Send', command=self.in_func, font=self.font_style)
         self.in_button.place(x=720, y=360, height=30, width=60)
         self.in_button.config(background='medium spring green')
-        
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-    
-            # Display select table
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            table_columns = cur.fetchall()
-            self.column_combo = ttk.Combobox(self.window, font=self.font_style,
-                                             values=[table_columns[i][0] for i in range(len(table_columns))])        
-            self.column_combo.place(x=200, y=360, height=30, width=150)                       
-        finally:
-            cur.close() 
-            
+        # Display select table
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        table_columns = self.cursor.fetchall()
+        self.column_combo = ttk.Combobox(self.window, font=self.font_style,
+                                            values=[table_columns[i][0] for i in range(len(table_columns))])        
+        self.column_combo.place(x=200, y=360, height=30, width=150)                       
+
     def in_func(self):
         self.listBox.delete(*self.listBox.get_children())
-        try:
-            # Connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            cur.execute(f'SELECT * FROM {self.table_combo.get()} \
-                        WHERE {self.column_combo.get()} {self.in_combo.get()} ({self.in_entry.get()})')
-            table_result = cur.fetchall()
-            if table_result:
-                for row in table_result:
-                    self.listBox.insert('', 'end', values=row)
-            self.status_label.configure(text = '')
-            self.status_label.configure(background = 'white')            
-        finally:
-            cur.close() 
+        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()} \
+                    WHERE {self.column_combo.get()} {self.in_combo.get()} ({self.in_entry.get()})')
+        table_result = self.cursor.fetchall()
+        if table_result:
+            for row in table_result:
+                self.listBox.insert('', 'end', values=row)
+        self.status_label.configure(text = '')
+        self.status_label.configure(background = 'white')            
         
     def having_display(self):   
         self.groupby_label = tk.Label(self.window, text='Grouped by', font=self.font_style, background='light salmon')
@@ -443,111 +366,80 @@ class ButtonInterface(object):
         self.having_button = tk.Button(self.window, text='Send', command=self.having_func, font=self.font_style)
         self.having_button.place(x=720, y=260, height=70, width=60)
         self.having_button.config(background='salmon')
+        # Display select table
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        table_columns = self.cursor.fetchall()
+        self.groupby_combo = ttk.Combobox(self.window, font=self.font_style,
+                                            values=[table_columns[i][0] for i in range(len(table_columns))])        
+        self.groupby_combo.place(x=200, y=260, height=30, width=200)
         
-        try:
-            # connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-    
-            # Display select table
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            table_columns = cur.fetchall()
-            self.groupby_combo = ttk.Combobox(self.window, font=self.font_style,
-                                              values=[table_columns[i][0] for i in range(len(table_columns))])        
-            self.groupby_combo.place(x=200, y=260, height=30, width=200)
-            
-            self.havcol_combo = ttk.Combobox(self.window, font=self.font_style,
-                                             values=[table_columns[i][0] for i in range(len(table_columns))])        
-            self.havcol_combo.place(x=200, y=300, height=30, width=150)  
-            self.havcol_combo.bind("<<ComboboxSelected>>", self.create_agg_combo)
+        self.havcol_combo = ttk.Combobox(self.window, font=self.font_style,
+                                            values=[table_columns[i][0] for i in range(len(table_columns))])        
+        self.havcol_combo.place(x=200, y=300, height=30, width=150)  
+        self.havcol_combo.bind("<<ComboboxSelected>>", self.create_agg_combo)
         
-        finally:
-            cur.close()
-            
     def having_func(self):
         self.listBox.delete(*self.listBox.get_children())
-        try:
-            # connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            cur.execute(f'SELECT {self.groupby_combo.get()}, {self.agg_combo.get()}({self.havcol_combo.get()})\
-                        FROM {self.table_combo.get()} \
-                        GROUP BY {self.groupby_combo.get()} \
-                        HAVING {self.agg_combo.get()}({self.havcol_combo.get()}) {self.ope_combo.get()} {self.condition_entry.get()}')
-            table_result = cur.fetchall()
-            # Reset listbox
-            list_column = [self.groupby_combo.get(), f'{self.agg_combo.get()}({self.havcol_combo.get()})']
-            self.listBox.config(columns=list_column)
-            for i in range(len(list_column)):
-                self.listBox.heading(i, text=list_column[i])
-                self.listBox.column(i, stretch='True', anchor='center', width='380')
-            # Display having result
-            if table_result:
-                for row in table_result:
-                    self.listBox.insert('', 'end', values=row)
-            self.status_label.configure(text = '')
-            self.status_label.configure(background = 'white')
-        finally:
-            cur.close()
+        
+        self.cursor.execute(f'SELECT {self.groupby_combo.get()}, {self.agg_combo.get()}({self.havcol_combo.get()})\
+                    FROM {self.table_combo.get()} \
+                    GROUP BY {self.groupby_combo.get()} \
+                    HAVING {self.agg_combo.get()}({self.havcol_combo.get()}) {self.ope_combo.get()} {self.condition_entry.get()}')
+        table_result = self.cursor.fetchall()
+        # Reset listbox
+        list_column = [self.groupby_combo.get(), f'{self.agg_combo.get()}({self.havcol_combo.get()})']
+        self.listBox.config(columns=list_column)
+        for i in range(len(list_column)):
+            self.listBox.heading(i, text=list_column[i])
+            self.listBox.column(i, stretch='True', anchor='center', width='380')
+        # Display having result
+        if table_result:
+            for row in table_result:
+                self.listBox.insert('', 'end', values=row)
+        self.status_label.configure(text = '')
+        self.status_label.configure(background = 'white')
             
     def create_agg_combo(self, event):
-        try:
-            # connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-    
-            # Display select table
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            table_columns = cur.fetchall()
-            
-            # Find int column
-            int_column = []
-            for i in range(len(table_columns)):
-                if table_columns[i][1]=='int':
-                    int_column.append(table_columns[i][0])  
-                    
-            if self.havcol_combo.get() in int_column: 
-                self.agg_combo['values'] = ['Sum', 'Max', 'Min', 'Avg', 'Count']
-            else:
-                self.agg_combo['values'] = ['Count']
-        finally:
-            cur.close()
+        # Display select table
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        table_columns = self.cursor.fetchall()
+        
+        # Find int column
+        int_column = []
+        for i in range(len(table_columns)):
+            if table_columns[i][1]=='int':
+                int_column.append(table_columns[i][0])  
+                
+        if self.havcol_combo.get() in int_column: 
+            self.agg_combo['values'] = ['Sum', 'Max', 'Min', 'Avg', 'Count']
+        else:
+            self.agg_combo['values'] = ['Count']
             
     def aggregate(self):
-        AggregateInterface(self.ip, self.user, self.password, self.database, self.font_style, self.table_combo.get())
+        AggregateInterface(self.connection, self.cursor, self.font_style, self.table_combo.get())
 
     def insert(self):
-        try:
-            # connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            insert_value = []
-            for i in range(len(self.entry)):
-                insert_value.append(self.entry[i].get())
-            cur.execute(f'INSERT INTO {self.table_combo.get()} VALUES{tuple(insert_value)}')  
-            con.commit()
-            self.listBox.insert('', tk.END, text=str(cur.lastrowid), values=tuple(insert_value))
-        finally:
-            cur.close()
+        insert_value = []
+        for i in range(len(self.entry)):
+            insert_value.append(self.entry[i].get())
+        self.cursor.execute(f'INSERT INTO {self.table_combo.get()} VALUES{tuple(insert_value)}')  
+        self.connection.commit()
+        self.listBox.insert('', tk.END, text=str(self.cursor.lastrowid), values=tuple(insert_value))
         self.update_listbox()
         
     def delete(self):
-        try:
-            # connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            delete_value = {}
-            condition = ''
-            table_columns = cur.fetchall()
-            for i in range(len(table_columns)):
-                delete_value[table_columns[i][0]] = self.entry[i].get()
-                if delete_value[table_columns[i][0]] != '' and condition=='':
-                    condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-                elif delete_value[table_columns[i][0]] != '':
-                    condition = condition + ' AND ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-            cur.execute(f'DELETE FROM {self.table_combo.get()} WHERE {condition}')  
-            con.commit()
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        delete_value = {}
+        condition = ''
+        table_columns = self.cursor.fetchall()
+        for i in range(len(table_columns)):
+            delete_value[table_columns[i][0]] = self.entry[i].get()
+            if delete_value[table_columns[i][0]] != '' and condition=='':
+                condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
+            elif delete_value[table_columns[i][0]] != '':
+                condition = condition + ' AND ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
+        self.cursor.execute(f'DELETE FROM {self.table_combo.get()} WHERE {condition}')  
+        self.connection.commit()
         # except:
         #     warning_window = tk.Toplevel()
         #     warning_window.wm_title("Warning")
@@ -557,29 +449,21 @@ class ButtonInterface(object):
         #                              text='Please enter condition for deletion!', font=self.font_style)
         #     warning_label.configure(background = 'white')
         #     warning_label.place(x=20, y=20, width=460)
-        finally:
-            cur.close()
         self.update_listbox()
     
     def update(self):
-        try:
-            # connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            update_value = {}
-            condition = ''
-            table_columns = cur.fetchall()
-            for i in range(1, len(table_columns)):
-                update_value[table_columns[i][0]] = self.entry[i].get()
-                if condition=='':
-                    condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-                elif update_value[table_columns[i][0]] != '':
-                    condition = condition + ', ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-            cur.execute(f'UPDATE {self.table_combo.get()} SET {condition} WHERE {table_columns[0][0]}="{self.entry[0].get()}"')
-            con.commit()
-        finally:
-            cur.close()
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        update_value = {}
+        condition = ''
+        table_columns = self.cursor.fetchall()
+        for i in range(1, len(table_columns)):
+            update_value[table_columns[i][0]] = self.entry[i].get()
+            if condition=='':
+                condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
+            elif update_value[table_columns[i][0]] != '':
+                condition = condition + ', ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
+        self.cursor.execute(f'UPDATE {self.table_combo.get()} SET {condition} WHERE {table_columns[0][0]}="{self.entry[0].get()}"')
+        self.connection.commit()
         self.update_listbox()
     
     def on_listbox_select(self, event):
@@ -600,31 +484,23 @@ class ButtonInterface(object):
             
     def update_listbox(self):
         self.listBox.delete(*self.listBox.get_children())
-        try:
-            # connect to database
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-            # Display select table
-            cur.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-            table_columns = cur.fetchall()
-            self.listBox.config(columns=table_columns)
-            for i in range(len(table_columns)):
-                self.listBox.heading(i, text=table_columns[i][0])
-                self.listBox.column(i, stretch='True', anchor='center', width='190')
-            cur.execute(f'SELECT * FROM {self.table_combo.get()}')
-            table_result = cur.fetchall()
-            if table_result:
-                for row in table_result:
-                    self.listBox.insert('', 'end', values=row)
-        finally:
-            cur.close()
+        # Display select table
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        table_columns = self.cursor.fetchall()
+        self.listBox.config(columns=table_columns)
+        for i in range(len(table_columns)):
+            self.listBox.heading(i, text=table_columns[i][0])
+            self.listBox.column(i, stretch='True', anchor='center', width='190')
+        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()}')
+        table_result = self.cursor.fetchall()
+        if table_result:
+            for row in table_result:
+                self.listBox.insert('', 'end', values=row)
       
 class QueryInterface(object):
-    def __init__(self, ip, user, password, database, font_style):
-        self.ip=ip
-        self.user=user
-        self.password=password
-        self.database=database
+    def __init__(self, connection, cursor, font_style):
+        self.connection = connection
+        self.cursor = cursor
         self.font_style = font_style
         
         window= tk.Toplevel()
@@ -669,39 +545,31 @@ class QueryInterface(object):
         self.listBox.delete(*self.listBox.get_children())
         # Setting the query
         self.query = self.query_entry.get('1.0', tk.END)
-        try:
-            con = pymysql.connect(self.ip, self.user, self.password, self.database)
-            cur = con.cursor()
-    
-            # Send select statement
-            cur.execute(self.query)
-            con.commit()
-            # # Display select table
-            # table_columns = cur.description
-            # self.listBox.config(columns=table_columns)
-            # for i in range(len(table_columns)):
-            #     self.listBox.heading(i, text=table_columns[i][0])
-            #     self.listBox.column(i, stretch='True', anchor='center', width='190')
-          
-            # table_result = cur.fetchall()
-            # if table_result:
-            #     for row in table_result:
-            #         self.listBox.insert('', 'end', values=row)
-            
-            # self.status_label.configure(text = 'Query Success')
-            # self.status_label.configure(background = 'chartreuse3', fg='white')
+        # Send select statement
+        self.cursor.execute(self.query)
+        self.connection.commit()
+        # # Display select table
+        # table_columns = self.cursor.description
+        # self.listBox.config(columns=table_columns)
+        # for i in range(len(table_columns)):
+        #     self.listBox.heading(i, text=table_columns[i][0])
+        #     self.listBox.column(i, stretch='True', anchor='center', width='190')
+        
+        # table_result = self.cursor.fetchall()
+        # if table_result:
+        #     for row in table_result:
+        #         self.listBox.insert('', 'end', values=row)
+        
+        # self.status_label.configure(text = 'Query Success')
+        # self.status_label.configure(background = 'chartreuse3', fg='white')
         # except:
         #     self.status_label.configure(text = 'Query Failed')
         #     self.status_label.configure(background = 'orange red', fg='white')
-        finally:
-            cur.close()
         
 class DatabaseInterface(object):
-    def __init__(self, window, ip, user, password, database):
-        self.ip=ip
-        self.user=user
-        self.password=password
-        self.database=database
+    def __init__(self, window, connection, cursor):
+        self.connection = connection
+        self.cursor = cursor
 
         # Set the window title 
         window.wm_title("Database Interface")
@@ -720,17 +588,22 @@ class DatabaseInterface(object):
         self.choose_label.configure(background='white')
     
     def query(self):
-        QueryInterface(self.ip, self.user, self.password, self.database, self.font_style)
+        QueryInterface(self.connection, self.cursor, self.font_style)
         
     def button(self):
-        ButtonInterface(self.ip, self.user, self.password, self.database, self.font_style)
+        ButtonInterface(self.connection, self.cursor, self.font_style)
 
             
 # Create the GUI and pass it to our App class
-def main(host, user, password, database):
+def main(ip, user, password, database):
     window= tk.Tk()
-    DatabaseInterface(window, host, user, password, database)
-    window.mainloop()
+    try:
+        connection = pymysql.connect(ip, user, password, database)
+        cursor = connection.cursor()
+        DatabaseInterface(window, connection, cursor)
+        window.mainloop()
+    finally:
+        cursor.close()
 
 if __name__ == "__main__":
-    main(host='localhost', user='root', password='red91310', database = 'delivery_db')
+    main(ip='localhost', user='root', password='red91310', database = 'delivery_db')
