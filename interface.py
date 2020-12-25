@@ -35,7 +35,7 @@ class AggregateInterface(object):
         self.condition_label.config(background='gray80')
         
         # Count button
-        self.count_button = tk.Button(self.window, text=f'Count', font=self.font_style, command=self.condition)
+        self.count_button = tk.Button(self.window, text=f'Count', font=self.font_style, command=self.count_function)
         self.count_button.place(x=20, y=200, height=30, width=760)
         self.count_button.config(background='gold')
         
@@ -44,19 +44,19 @@ class AggregateInterface(object):
         self.clean_button.place(x=630, y=20, height=30, width=150)
         self.clean_button.configure(background='white')
         
+        # Get column infomation of the selected table
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_name}')
+        self.table_columns = self.cursor.fetchall()
         self.display_condition()
         self.total_record(table_name)
     
     def display_condition(self):
-        # Display select table
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_name}')
-        table_columns = self.cursor.fetchall()
         # Combo
         combo_label, self.column_combo = [], []
-        for i in range(len(table_columns)):
-            combo_label.append(tk.Label(self.window, text=table_columns[i][0], font=self.font_style))
+        for i in range(len(self.table_columns)):
+            combo_label.append(tk.Label(self.window, text=self.table_columns[i][0], font=self.font_style))
             combo_label[i].place(x=20+190*(i), y=130, height=30, width=190)
-            self.cursor.execute(f'SELECT DISTINCT {table_columns[i][0]} FROM {self.table_name}')
+            self.cursor.execute(f'SELECT DISTINCT {self.table_columns[i][0]} FROM {self.table_name}')
             self.column_combo.append(ttk.Combobox(self.window, values=self.cursor.fetchall(), font=self.font_style))
             self.column_combo[i].place(x=20+190*(i), y=160, height=30, width=190)   
 
@@ -65,29 +65,26 @@ class AggregateInterface(object):
         self.cursor.execute(f'SELECT COUNT(*) FROM {self.table_name}')
         count_total = self.cursor.fetchone()[0]
         self.record_label.config(text=f'Total Record: {count_total}')           
-
-    def condition(self):
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_name}')
-        table_columns = self.cursor.fetchall()
         
+    def count_function(self):
         # count
         for i in range(len(self.column_combo)):
             if self.column_combo[i].get():
-                self.condition = f'{table_columns[i][0]}="{self.column_combo[i].get()}"'
-                self.cursor.execute(f'SELECT COUNT({table_columns[i][0]}) FROM {self.table_name} WHERE {self.condition}')
+                self.condition = f'{self.table_columns[i][0]}="{self.column_combo[i].get()}"'
+                self.cursor.execute(f'SELECT COUNT({self.table_columns[i][0]}) FROM {self.table_name} WHERE {self.condition}')
         count_condition = self.cursor.fetchone()[0]
         self.count_result = tk.Label(self.window, text=f'Record: {count_condition}', background='gray80', font=self.font_style)
         self.count_result.place(x=630, y=360, height=30, width=150)
         
         # find int atribute for sum, max, min, avg.
         aggregate_list = ['Sum', 'Max', 'Min', 'Avg']
-        for i in range(len(table_columns)):
+        for i in range(len(self.table_columns)):
             self.agg_result = []
-            if table_columns[i][1]=='int':
+            if self.table_columns[i][1]=='int':
                 for agg in range(len(aggregate_list)):
-                    self.cursor.execute(f'SELECT {aggregate_list[agg]}({table_columns[i][0]}) FROM {self.table_name}')
+                    self.cursor.execute(f'SELECT {aggregate_list[agg]}({self.table_columns[i][0]}) FROM {self.table_name}')
                     agg_total = self.cursor.fetchone()[0]
-                    self.cursor.execute(f'SELECT {aggregate_list[agg]}({table_columns[i][0]}) FROM {self.table_name} WHERE {self.condition}')
+                    self.cursor.execute(f'SELECT {aggregate_list[agg]}({self.table_columns[i][0]}) FROM {self.table_name} WHERE {self.condition}')
                     agg_condition = self.cursor.fetchone()[0]
                     self.agg_result.append(tk.Label(self.window, 
                                                     text=f'{aggregate_list[agg]}: {round(agg_condition, 0)}/{round(agg_total, 0)}', 
@@ -592,3 +589,19 @@ class DatabaseInterface(object):
         ButtonInterface(self.connection, self.cursor, self.font_style)
 
             
+<<<<<<< HEAD:interface.py
+=======
+# Create the GUI and pass it to our App class
+def main(ip, user, password, database):
+    window = tk.Tk()
+    try:
+        connection = pymysql.connect(ip, user, password, database)
+        cursor = connection.cursor()
+        DatabaseInterface(window, connection, cursor)
+        window.mainloop()
+    finally:
+        cursor.close()
+
+if __name__ == "__main__":
+    main(ip ='localhost', user ='root', password ='red91310', database = 'delivery_db')
+>>>>>>> 8eadc98 (Rename a function name):DBMS.py
