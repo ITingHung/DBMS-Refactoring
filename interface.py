@@ -537,29 +537,30 @@ class QueryInterface(object):
         self.xscroll.place(x=20, y=500, width=760)
         
     def send_query(self):
-        self.listBox.delete(*self.listBox.get_children())
-        # Setting the query
-        self.query = self.query_entry.get('1.0', tk.END)
-        # Send select statement
-        self.cursor.execute(self.query)
-        self.connection.commit()
-        # # Display select table
-        # table_columns = self.cursor.description
-        # self.listBox.config(columns=table_columns)
-        # for i in range(len(table_columns)):
-        #     self.listBox.heading(i, text=table_columns[i][0])
-        #     self.listBox.column(i, stretch='True', anchor='center', width='190')
-        
-        # table_result = self.cursor.fetchall()
-        # if table_result:
-        #     for row in table_result:
-        #         self.listBox.insert('', 'end', values=row)
-        
-        # self.status_label.configure(text = 'Query Success')
-        # self.status_label.configure(background = 'chartreuse3', fg='white')
-        # except:
-        #     self.status_label.configure(text = 'Query Failed')
-        #     self.status_label.configure(background = 'orange red', fg='white')
+        try:
+            self.listBox.delete(*self.listBox.get_children())
+            # Setting the query
+            self.query = self.query_entry.get('1.0', tk.END)
+            # Send select statement
+            self.cursor.execute(self.query)
+            self.connection.commit()
+            # Display select table
+            table_columns = self.cursor.description
+            self.listBox.config(columns=table_columns)
+            for i in range(len(table_columns)):
+                self.listBox.heading(i, text=table_columns[i][0])
+                self.listBox.column(i, stretch='True', anchor='center', width='190')
+            
+            table_result = self.cursor.fetchall()
+            if table_result:
+                for row in table_result:
+                    self.listBox.insert('', 'end', values=row)
+            
+            self.status_label.configure(text = 'Query Success')
+            self.status_label.configure(background = 'chartreuse3', fg='white')
+        except:
+            self.status_label.configure(text = 'Query Failed')
+            self.status_label.configure(background = 'orange red', fg='white')
         
 class DatabaseInterface(object):
     def __init__(self, window, connection, cursor):
@@ -588,20 +589,3 @@ class DatabaseInterface(object):
     def button(self):
         ButtonInterface(self.connection, self.cursor, self.font_style)
 
-            
-<<<<<<< HEAD:interface.py
-=======
-# Create the GUI and pass it to our App class
-def main(ip, user, password, database):
-    window = tk.Tk()
-    try:
-        connection = pymysql.connect(ip, user, password, database)
-        cursor = connection.cursor()
-        DatabaseInterface(window, connection, cursor)
-        window.mainloop()
-    finally:
-        cursor.close()
-
-if __name__ == "__main__":
-    main(ip ='localhost', user ='root', password ='red91310', database = 'delivery_db')
->>>>>>> 8eadc98 (Rename a function name):DBMS.py
