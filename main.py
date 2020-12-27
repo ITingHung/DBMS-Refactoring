@@ -1,16 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jun  1 13:25:22 2020
-
-@author: user
-"""
-
 import tkinter as tk
 import pymysql
 
 from interface import DatabaseInterface
-
-# https://www.w3schools.com/python/python_mysql_create_database.asp
 
 # Create the GUI and pass it to our App class
 def main(ip, user, password, database):

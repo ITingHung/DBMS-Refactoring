@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Dec 25 10:02:15 2020
-
-@author: kevin
-"""
-
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font
 from tkinter.scrolledtext import ScrolledText
+import in_window, having_window, exist_window
 
 class AggregateInterface(object):
     def __init__(self, connection, cursor, font_style, table_name):
@@ -109,13 +103,13 @@ class ButtonInterface(object):
         
         # Combo
         self.combo_label = tk.Label(self.window, text="Table", font=self.font_style)
-        self.combo_label.place(x=20, y=20, width=100)
+        self.combo_label.place(x=20, y=20, height=30, width=100)
         self.combo_label.config(background='gray80')
         
         # Search field
         # Search button
         self.search_button = tk.Button(self.window, text="Search", font=self.font_style, command=self.send_search)
-        self.search_button.place(x=350, y=15, width=100)
+        self.search_button.place(x=350, y=20, height=30, width=100)
         # Search status
         self.status_label = tk.Label(self.window, text='', font=self.font_style)
         self.status_label.configure(background = 'white')
@@ -147,9 +141,6 @@ class ButtonInterface(object):
         self.listBox.configure(xscrollcommand = self.xscroll.set)
         self.xscroll.place(x=20, y=670, width=760)
         
-        self.display_table_combo()
-        
-    def display_table_combo(self):
         self.cursor.execute(f'SELECT * FROM information_schema.tables WHERE table_schema = "delivery_db"')
         table_name = self.cursor.fetchall()
         self.table_combo = ttk.Combobox(self.window, font=self.font_style,
@@ -203,12 +194,6 @@ class ButtonInterface(object):
         clean_button = tk.Button(self.window, text="Clean", font=self.font_style, command=self.clean)
         clean_button.place(x=720, y=200, height=50, width=60) 
         
-        self.select_columns_combo = ttk.Combobox(self.window, font=self.font_style)          
-        self.select_columns_combo.place(x=420, y=400, height=30, width=120)
-        
-        self.agg_combo = ttk.Combobox(self.window, font=self.font_style)        
-        self.agg_combo.place(x=380, y=300, height=30, width=100)
-        
         self.cursor.execute(f'SELECT * FROM {self.table_combo.get()}')
         table_result = self.cursor.fetchall()
         if table_result:
@@ -219,25 +204,10 @@ class ButtonInterface(object):
         
         # Having field
         self.having_display()
-        self.groupby_combo.config(state='disable')
-        self.ope_combo.config(state='disable')
-        self.condition_entry.config(state='disable')
-        self.having_button.config(state='disable')
-        self.havcol_combo.config(state='disable')
-        self.agg_combo.config(state='disable')
-        for i in range(len(table_columns)):
-            if table_columns[i][1]=='int':
-                self.groupby_combo.config(state='normal')
-                self.ope_combo.config(state='normal')
-                self.condition_entry.config(state='normal')
-                self.having_button.config(state='normal')
-                self.havcol_combo.config(state='normal')
-                self.agg_combo.config(state='normal')
-                break
-        
         # Nested field
         self.in_display()
-        self.exist_display()           
+        self.exist_display()
+        
         # except:
         #     self.status_label.configure(text = 'Please select a table', fg='white')
         #     self.status_label.configure(background = 'orange red')
@@ -263,137 +233,40 @@ class ButtonInterface(object):
     def clean(self):    
         for i in range(len(self.entry)):
             self.entry[i].delete(0, 'end')
-        self.exist_combo.set('')
-        self.select_table_combo.set('')
-        self.select_columns_combo.set('')
-        self.current_columns_combo.set('')
-        self.column_combo.set('')
-        self.in_combo.set('')
-        self.in_entry.delete(0, 'end')
-        self.agg_combo.set('')
-        self.ope_combo.set('')
-        self.condition_entry.delete(0, 'end')
-        self.groupby_combo.set('')
-        self.havcol_combo.set('')
     
     def exist_display(self):
-        self.exist_label = tk.Label(self.window, text='EXIST', font=self.font_style, background='pale green')
-        self.exist_label.place(x=100, y=400, height=30, width=75)
-        self.exist_combo = ttk.Combobox(self.window, font=self.font_style, values=['EXISTS', 'NOT EXISTS'])        
-        self.exist_combo.place(x=200, y=400, height=30, width=100)
-        self.exist_button = tk.Button(self.window, text='Send', command=self.exist_func, font=self.font_style)
-        self.exist_button.place(x=720, y=400, height=30, width=60)
+        self.exist_button = tk.Button(self.window, text='Exist', command=self.exist_func, font=self.font_style)
+        self.exist_button.place(x=150, y=300, height=50, width=100)
         self.exist_button.config(background='medium spring green')
-        self.equal_label = tk.Label(self.window, text='=', font=self.font_style, background='pale green')
-        self.equal_label.place(x=550, y=400, height=30, width=30)
-
-        # Display select table
-        self.cursor.execute(f'SELECT * FROM information_schema.tables WHERE table_schema = "delivery_db"')
-        table_name = self.cursor.fetchall()
-        self.select_table_combo = ttk.Combobox(self.window, font=self.font_style, 
-                                                values=[table_name[i][2] for i in range(len(table_name))])          
-        self.select_table_combo.place(x=310, y=400, height=30, width=100)
-        self.select_table_combo.bind("<<ComboboxSelected>>", self.create_column_combo)
         
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-        current_table_columns = self.cursor.fetchall()
-        self.current_columns_combo = ttk.Combobox(self.window, font=self.font_style, 
-                                                    values=[current_table_columns[i][0] for i in range(len(current_table_columns))])          
-        self.current_columns_combo.place(x=590, y=400, height=30, width=120)            
-            
     def exist_func(self):
-        self.listBox.delete(*self.listBox.get_children())
-        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()} \
-                    WHERE {self.exist_combo.get()} \
-                    (SELECT * FROM {self.select_table_combo.get()} \
-                        WHERE {self.table_combo.get()}.{self.current_columns_combo.get()}={self.select_table_combo.get()}.{self.select_columns_combo.get()})')
-        table_result = self.cursor.fetchall()
-        if table_result:
-            for row in table_result:
-                self.listBox.insert('', 'end', values=row)
-        self.status_label.configure(text = '')
-        self.status_label.configure(background = 'white')            
+        exist_window.ExistWindow(self.connection, self.cursor, 
+                                 self.font_style, self.table_combo.get(), 'Exist')
             
-    def create_column_combo(self, event):
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.select_table_combo.get()}')
-        select_table_columns = self.cursor.fetchall()
-        self.select_columns_combo['values'] = [select_table_columns[i][0] for i in range(len(select_table_columns))]
-
     def in_display(self):
-        self.nested_label = tk.Label(self.window, text='Nested', font=self.font_style, background='pale green')
-        self.nested_label.place(x=20, y=360, height=70, width=75)
-        self.in_label = tk.Label(self.window, text='IN', font=self.font_style, background='pale green')
-        self.in_label.place(x=100, y=360, height=30, width=75)
-        self.in_combo = ttk.Combobox(self.window, font=self.font_style, values=['IN', 'NOT IN'])        
-        self.in_combo.place(x=380, y=360, height=30, width=90)
-        self.in_entry = tk.Entry(self.window, font=self.font_style)
-        self.in_entry.place(x=500, y=360, height=30, width=210)
-        self.in_button = tk.Button(self.window, text='Send', command=self.in_func, font=self.font_style)
-        self.in_button.place(x=720, y=360, height=30, width=60)
-        self.in_button.config(background='medium spring green')
-        # Display select table
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-        table_columns = self.cursor.fetchall()
-        self.column_combo = ttk.Combobox(self.window, font=self.font_style,
-                                            values=[table_columns[i][0] for i in range(len(table_columns))])        
-        self.column_combo.place(x=200, y=360, height=30, width=150)                       
+        self.in_button = tk.Button(self.window, text='IN', command=self.in_func, font=self.font_style)
+        self.in_button.place(x=350, y=300, height=50, width=100)
+        self.in_button.config(background='medium spring green')                      
 
     def in_func(self):
-        self.listBox.delete(*self.listBox.get_children())
-        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()} \
-                    WHERE {self.column_combo.get()} {self.in_combo.get()} ({self.in_entry.get()})')
-        table_result = self.cursor.fetchall()
-        if table_result:
-            for row in table_result:
-                self.listBox.insert('', 'end', values=row)
-        self.status_label.configure(text = '')
-        self.status_label.configure(background = 'white')            
+        in_window.InWindow(self.connection, self.cursor, 
+                           self.font_style, self.table_combo.get(), 'Nested: IN')
         
-    def having_display(self):   
-        self.groupby_label = tk.Label(self.window, text='Grouped by', font=self.font_style, background='light salmon')
-        self.groupby_label.place(x=20, y=260, height=30, width=150)
-        self.having_label = tk.Label(self.window, text='Having', font=self.font_style, background='light salmon')
-        self.having_label.place(x=20, y=300, height=30, width=150)
-        self.ope_combo = ttk.Combobox(self.window, values=['>', '<', '=', '>=', '<='], font=self.font_style)        
-        self.ope_combo.place(x=510, y=300, height=30, width=50)
-        self.condition_entry = tk.Entry(self.window, font=self.font_style)
-        self.condition_entry.place(x=590, y=300, height=30, width=120)
-        self.having_button = tk.Button(self.window, text='Send', command=self.having_func, font=self.font_style)
-        self.having_button.place(x=720, y=260, height=70, width=60)
+    def having_display(self):  
+        self.having_button = tk.Button(self.window, text='Having', command=self.having_func, font=self.font_style)
+        self.having_button.place(x=550, y=300, height=50, width=100)
         self.having_button.config(background='salmon')
-        # Display select table
+        self.having_button.config(state='disable')
         self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
         table_columns = self.cursor.fetchall()
-        self.groupby_combo = ttk.Combobox(self.window, font=self.font_style,
-                                            values=[table_columns[i][0] for i in range(len(table_columns))])        
-        self.groupby_combo.place(x=200, y=260, height=30, width=200)
-        
-        self.havcol_combo = ttk.Combobox(self.window, font=self.font_style,
-                                            values=[table_columns[i][0] for i in range(len(table_columns))])        
-        self.havcol_combo.place(x=200, y=300, height=30, width=150)  
-        self.havcol_combo.bind("<<ComboboxSelected>>", self.create_agg_combo)
-        
-    def having_func(self):
-        self.listBox.delete(*self.listBox.get_children())
-        
-        self.cursor.execute(f'SELECT {self.groupby_combo.get()}, {self.agg_combo.get()}({self.havcol_combo.get()})\
-                    FROM {self.table_combo.get()} \
-                    GROUP BY {self.groupby_combo.get()} \
-                    HAVING {self.agg_combo.get()}({self.havcol_combo.get()}) {self.ope_combo.get()} {self.condition_entry.get()}')
-        table_result = self.cursor.fetchall()
-        # Reset listbox
-        list_column = [self.groupby_combo.get(), f'{self.agg_combo.get()}({self.havcol_combo.get()})']
-        self.listBox.config(columns=list_column)
-        for i in range(len(list_column)):
-            self.listBox.heading(i, text=list_column[i])
-            self.listBox.column(i, stretch='True', anchor='center', width='380')
-        # Display having result
-        if table_result:
-            for row in table_result:
-                self.listBox.insert('', 'end', values=row)
-        self.status_label.configure(text = '')
-        self.status_label.configure(background = 'white')
+        for i in range(len(table_columns)):
+            if table_columns[i][1]=='int':
+                self.having_button.config(state='normal')
             
+    def having_func(self):
+        having_window.HavingWindow(self.connection, self.cursor, 
+                                   self.font_style, self.table_combo.get(), 'Group by, having')
+        
     def create_agg_combo(self, event):
         # Display select table
         self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
@@ -537,30 +410,29 @@ class QueryInterface(object):
         self.xscroll.place(x=20, y=500, width=760)
         
     def send_query(self):
-        try:
-            self.listBox.delete(*self.listBox.get_children())
-            # Setting the query
-            self.query = self.query_entry.get('1.0', tk.END)
-            # Send select statement
-            self.cursor.execute(self.query)
-            self.connection.commit()
-            # Display select table
-            table_columns = self.cursor.description
-            self.listBox.config(columns=table_columns)
-            for i in range(len(table_columns)):
-                self.listBox.heading(i, text=table_columns[i][0])
-                self.listBox.column(i, stretch='True', anchor='center', width='190')
-            
-            table_result = self.cursor.fetchall()
-            if table_result:
-                for row in table_result:
-                    self.listBox.insert('', 'end', values=row)
-            
-            self.status_label.configure(text = 'Query Success')
-            self.status_label.configure(background = 'chartreuse3', fg='white')
-        except:
-            self.status_label.configure(text = 'Query Failed')
-            self.status_label.configure(background = 'orange red', fg='white')
+        self.listBox.delete(*self.listBox.get_children())
+        # Setting the query
+        self.query = self.query_entry.get('1.0', tk.END)
+        # Send select statement
+        self.cursor.execute(self.query)
+        self.connection.commit()
+        # # Display select table
+        # table_columns = self.cursor.description
+        # self.listBox.config(columns=table_columns)
+        # for i in range(len(table_columns)):
+        #     self.listBox.heading(i, text=table_columns[i][0])
+        #     self.listBox.column(i, stretch='True', anchor='center', width='190')
+        
+        # table_result = self.cursor.fetchall()
+        # if table_result:
+        #     for row in table_result:
+        #         self.listBox.insert('', 'end', values=row)
+        
+        # self.status_label.configure(text = 'Query Success')
+        # self.status_label.configure(background = 'chartreuse3', fg='white')
+        # except:
+        #     self.status_label.configure(text = 'Query Failed')
+        #     self.status_label.configure(background = 'orange red', fg='white')
         
 class DatabaseInterface(object):
     def __init__(self, window, connection, cursor):
@@ -588,4 +460,3 @@ class DatabaseInterface(object):
         
     def button(self):
         ButtonInterface(self.connection, self.cursor, self.font_style)
-
