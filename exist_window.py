@@ -21,12 +21,7 @@ class ExistWindow(SubWindow):
         self.current_columns_combo = ttk.Combobox(self.window, font=self.font_style, 
                                                     values=[table_columns[i][0] for i in range(len(table_columns))])          
         self.current_columns_combo.place(x=530, y=60, height=30, width=180)            
-        # Display columns of the current table in listbox
-        self.listBox.config(columns=table_columns)
-        for i in range(len(table_columns)):
-            self.listBox.heading(i, text=table_columns[i][0])
-            self.listBox.column(i, stretch='True', anchor='center', width='190')
-        
+
         # Provide columns of the selected table to select_table_combo
         self.cursor.execute(f'SELECT * FROM information_schema.tables WHERE table_schema = "delivery_db"')
         table_category = self.cursor.fetchall()

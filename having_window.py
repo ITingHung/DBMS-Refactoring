@@ -33,17 +33,6 @@ class HavingWindow(SubWindow):
         self.havcol_combo.place(x=200, y=100, height=30, width=150)  
         self.havcol_combo.bind("<<ComboboxSelected>>", self.create_agg_combo)
         
-        # Display selected table in listbox
-        self.listBox.config(columns=self.table_columns)
-        for i in range(len(self.table_columns)):
-            self.listBox.heading(i, text=self.table_columns[i][0])
-            self.listBox.column(i, stretch='True', anchor='center', width='190')
-        self.cursor.execute(f'SELECT * FROM {table_name}')
-        table_result = self.cursor.fetchall()
-        if table_result:
-            for row in table_result:
-                self.listBox.insert('', 'end', values=row)
-    
     def send_query(self):
         query = f'SELECT {self.groupby_combo.get()}, {self.agg_combo.get()}({self.havcol_combo.get()})\
                   FROM {self.table_name} \
