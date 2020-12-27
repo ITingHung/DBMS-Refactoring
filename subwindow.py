@@ -18,16 +18,16 @@ class SubWindow(object):
         self.table_label.place(x=20, y=20, height=30, width=200)
         self.table_label.config(background='white')
         
+        # clean input
+        self.clean_button = tk.Button(self.window, text="Clean", font=self.font_style, command=self.clean_value)
+        self.clean_button.place(x=720, y=20, height=30, width=60) 
+        
         # Result field
         self.result = tk.Label(self.window, text='Result', font=self.font_style)
         self.result.place(x=20, y=140, width=760)
         self.result.config(background='gray80')
         self.listBox = ttk.Treeview(self.window, show='headings')
         self.listBox.place(x=20, y=170, height=200, width=760)
-        
-        # clean input
-        self.clean_button = tk.Button(self.window, text="Clean", font=self.font_style, command=self.clean_value)
-        self.clean_button.place(x=720, y=20, height=30, width=60) 
         
         ## Rolling bar
         ### y-axis
@@ -38,12 +38,19 @@ class SubWindow(object):
         self.xscroll = ttk.Scrollbar(self.window, orient=tk.HORIZONTAL, command=self.listBox.xview)
         self.listBox.configure(xscrollcommand = self.xscroll.set)
         self.xscroll.place(x=20, y=370, width=760)
-    
+        
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_name}')
+        self.table_columns = self.cursor.fetchall()
+        self.display_result(f'SELECT * FROM {self.table_name}')
+        
     def display_result(self, query):
+        self.listBox.config(columns=self.table_columns)
+        for i in range(len(self.table_columns)):
+            self.listBox.heading(i, text=self.table_columns[i][0])
+            self.listBox.column(i, stretch='True', anchor='center', width='190')
         self.listBox.delete(*self.listBox.get_children())
         self.cursor.execute(query)
         table_result = self.cursor.fetchall()
-        print(table_result)
         if table_result:
             for row in table_result:
                 self.listBox.insert('', 'end', values=row)

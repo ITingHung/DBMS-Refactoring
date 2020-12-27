@@ -4,6 +4,33 @@ from tkinter import font
 from tkinter.scrolledtext import ScrolledText
 import in_window, having_window, exist_window
 
+class DatabaseInterface(object):
+    def __init__(self, window, connection, cursor):
+        self.connection = connection
+        self.cursor = cursor
+
+        # Set the window title 
+        window.wm_title("Database Interface")
+        window.geometry('800x200')
+        window.configure(background='white')
+        self.font_style = font.Font(family='Calibri', size=15)
+        
+        # Select button
+        self.query_button = tk.Button(window, text="Query", font=self.font_style, command=self.query)
+        self.query_button.place(x=275, y=100)
+        self.button_button = tk.Button(window, text="Button", font=self.font_style, command=self.button)
+        self.button_button.place(x=425, y=100)
+        
+        self.choose_label = tk.Label(window, text="Please choose a way for SQL:", font=self.font_style)
+        self.choose_label.place(x=190, y=40, width=400)
+        self.choose_label.configure(background='white')
+    
+    def query(self):
+        QueryInterface(self.connection, self.cursor, self.font_style)
+        
+    def button(self):
+        ButtonInterface(self.connection, self.cursor, self.font_style)
+
 class AggregateInterface(object):
     def __init__(self, connection, cursor, font_style, table_name):
         self.connection = connection
@@ -107,22 +134,8 @@ class ButtonInterface(object):
         self.combo_label.config(background='gray80')
         
         # Search field
-        # Search button
         self.search_button = tk.Button(self.window, text="Search", font=self.font_style, command=self.send_search)
         self.search_button.place(x=350, y=20, height=30, width=100)
-        # Search status
-        self.status_label = tk.Label(self.window, text='', font=self.font_style)
-        self.status_label.configure(background = 'white')
-        self.status_label.place(x=20, y=60, width=760)
-        
-        # Condition field
-        self.condition_label = tk.Label(self.window, text='Condition', font=self.font_style)
-        self.condition_label.place(x=20, y=90, height=30, width=760)
-        self.condition_label.config(background='gray80')
-        self.label = []
-        for i in range(4):
-            self.label.append(tk.Label(self.window, text='', font=self.font_style))
-            self.label[i].place(x=20+190*(i), y=120, height=30, width=190)
         
         # Result field
         self.result = tk.Label(self.window, text='Result', font=self.font_style)
@@ -148,82 +161,69 @@ class ButtonInterface(object):
         self.table_combo.place(x=120, y=20, height=30, width=200)
             
     def send_search(self):
+        # Get columns of the selected table
+        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
+        self.table_columns = self.cursor.fetchall()
+        
+        # Condition field
+        self.condition_label = tk.Label(self.window, text='Condition', font=self.font_style)
+        self.condition_label.place(x=20, y=90, height=30, width=760)
+        self.condition_label.config(background='gray80')
+        self.label = []
+        for i in range(4):
+            self.label.append(tk.Label(self.window, text='', font=self.font_style))
+            self.label[i].place(x=20+190*(i), y=120, height=30, width=190)
         self.select_button = tk.Button(self.window, text='Condition Search', font=self.font_style, command=self.condi_search_fun)          
         self.select_button.place(x=620, y=50, width=160)
         self.select_button.config(background='light sky blue')
-        
-        for i in range(len(self.label)):
-            self.label[i].config(text='')
-        self.listBox.delete(*self.listBox.get_children())
-        # Display select table
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-        table_columns = self.cursor.fetchall()
-        self.listBox.config(columns=table_columns)
-        for i in range(len(table_columns)):
-            self.listBox.heading(i, text=table_columns[i][0])
-            self.listBox.column(i, stretch='True', anchor='center', width='190')
-        
-        # Entry
+        ## Entry
         text, self.entry = [], []
-        for i in range(len(table_columns)):
-            self.label[i].config(text=table_columns[i][0])
+        for i in range(len(self.table_columns)):
+            self.label[i].config(text=self.table_columns[i][0])
             text.append(tk.StringVar())
             self.entry.append(tk.Entry(self.window, textvariable=text[i], font=self.font_style))
             self.entry[i].place(x=20+190*(i), y=150, height=40, width=190)
                 
-        # Buttons
+        # Function file
         function_label = tk.Label(self.window, text="Function", font=self.font_style, background='goldenrod1')
-        function_label.place(x=20, y=200, height=30, width=150) 
+        function_label.place(x=20, y=200, height=50, width=150) 
         
-        insert_button = tk.Button(self.window, text="Insert", font=self.font_style, command=self.insert)
-        insert_button.place(x=200, y=200, height=30, width=100) 
+        insert_button = tk.Button(self.window, text="Insert", font=self.font_style, command=self.insert_func)
+        insert_button.place(x=200, y=200, height=50, width=100) 
         insert_button.config(background='Gold')
         
-        delete_button = tk.Button(self.window, text="Delete", font=self.font_style, command=self.delete)
-        delete_button.place(x=330, y=200, height=30, width=100) 
+        delete_button = tk.Button(self.window, text="Delete", font=self.font_style, command=self.delete_func)
+        delete_button.place(x=330, y=200, height=50, width=100) 
         delete_button.config(background='Gold')
         
-        update_button = tk.Button(self.window, text="Update", font=self.font_style, command=self.update)
-        update_button.place(x=460, y=200, height=30, width=100) 
+        update_button = tk.Button(self.window, text="Update", font=self.font_style, command=self.update_func)
+        update_button.place(x=460, y=200, height=50, width=100) 
         update_button.config(background='Gold')
         
         aggregate_button = tk.Button(self.window, text="Aggregate", font=self.font_style, command=self.aggregate)
-        aggregate_button.place(x=590, y=200, height=30, width=100) 
+        aggregate_button.place(x=590, y=200, height=50, width=100) 
         aggregate_button.config(background='Gold')
         
         clean_button = tk.Button(self.window, text="Clean", font=self.font_style, command=self.clean)
         clean_button.place(x=720, y=200, height=50, width=60) 
         
-        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()}')
-        table_result = self.cursor.fetchall()
-        if table_result:
-            for row in table_result:
-                self.listBox.insert('', 'end', values=row)
-        self.status_label.configure(text = '')
-        self.status_label.configure(background = 'white')
-        
-        # Having field
         self.having_display()
-        # Nested field
         self.in_display()
         self.exist_display()
         
-        # except:
-        #     self.status_label.configure(text = 'Please select a table', fg='white')
-        #     self.status_label.configure(background = 'orange red')
+        # Result field
+        self.display_result()
 
     def condi_search_fun(self):
         self.listBox.delete(*self.listBox.get_children())
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
         select_value = {}
         condition = ''
-        table_columns = self.cursor.fetchall()
-        for i in range(len(table_columns)):
-            select_value[table_columns[i][0]] = self.entry[i].get()
-            if select_value[table_columns[i][0]] != '' and condition=='':
-                condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-            elif select_value[table_columns[i][0]] != '':
-                condition = condition + ' AND ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
+        for i in range(len(self.table_columns)):
+            select_value[self.table_columns[i][0]] = self.entry[i].get()
+            if select_value[self.table_columns[i][0]] != '' and condition=='':
+                condition = condition + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
+            elif select_value[self.table_columns[i][0]] != '':
+                condition = condition + ' AND ' + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
         self.cursor.execute(f'SELECT * FROM {self.table_combo.get()} WHERE {condition}')
         table_result = self.cursor.fetchall()
         if table_result:
@@ -233,6 +233,41 @@ class ButtonInterface(object):
     def clean(self):    
         for i in range(len(self.entry)):
             self.entry[i].delete(0, 'end')
+    
+    def insert_func(self):
+        insert_value = []
+        for i in range(len(self.entry)):
+            insert_value.append(self.entry[i].get())
+        self.cursor.execute(f'INSERT INTO {self.table_combo.get()} VALUES{tuple(insert_value)}')  
+        self.connection.commit()
+        self.listBox.insert('', tk.END, text=str(self.cursor.lastrowid), values=tuple(insert_value))
+        self.display_result()
+        
+    def delete_func(self):
+        delete_value = {}
+        condition = ''
+        for i in range(len(self.table_columns)):
+            delete_value[self.table_columns[i][0]] = self.entry[i].get()
+            if delete_value[self.table_columns[i][0]] != '' and condition=='':
+                condition = condition + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
+            elif delete_value[self.table_columns[i][0]] != '':
+                condition = condition + ' AND ' + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
+        self.cursor.execute(f'DELETE FROM {self.table_combo.get()} WHERE {condition}')  
+        self.connection.commit()
+        self.display_result()
+    
+    def update_func(self):
+        update_value = {}
+        condition = ''
+        for i in range(1, len(self.table_columns)):
+            update_value[self.table_columns[i][0]] = self.entry[i].get()
+            if condition=='':
+                condition = condition + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
+            elif update_value[self.table_columns[i][0]] != '':
+                condition = condition + ', ' + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
+        self.cursor.execute(f'UPDATE {self.table_combo.get()} SET {condition} WHERE {self.table_columns[0][0]}="{self.entry[0].get()}"')
+        self.connection.commit()
+        self.display_result()
     
     def exist_display(self):
         self.exist_button = tk.Button(self.window, text='Exist', command=self.exist_func, font=self.font_style)
@@ -256,83 +291,23 @@ class ButtonInterface(object):
         self.having_button = tk.Button(self.window, text='Having', command=self.having_func, font=self.font_style)
         self.having_button.place(x=550, y=300, height=50, width=100)
         self.having_button.config(background='salmon')
+        
+        # Set having_button state
+        ## Default state of having_button is disable
         self.having_button.config(state='disable')
+        ## Activate having_button if there is column in int type
         self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
         table_columns = self.cursor.fetchall()
-        for i in range(len(table_columns)):
+        for i in range(len(self.table_columns)):
             if table_columns[i][1]=='int':
                 self.having_button.config(state='normal')
             
     def having_func(self):
         having_window.HavingWindow(self.connection, self.cursor, 
                                    self.font_style, self.table_combo.get(), 'Group by, having')
-        
-    def create_agg_combo(self, event):
-        # Display select table
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-        table_columns = self.cursor.fetchall()
-        
-        # Find int column
-        int_column = []
-        for i in range(len(table_columns)):
-            if table_columns[i][1]=='int':
-                int_column.append(table_columns[i][0])  
-                
-        if self.havcol_combo.get() in int_column: 
-            self.agg_combo['values'] = ['Sum', 'Max', 'Min', 'Avg', 'Count']
-        else:
-            self.agg_combo['values'] = ['Count']
-            
+          
     def aggregate(self):
         AggregateInterface(self.connection, self.cursor, self.font_style, self.table_combo.get())
-
-    def insert(self):
-        insert_value = []
-        for i in range(len(self.entry)):
-            insert_value.append(self.entry[i].get())
-        self.cursor.execute(f'INSERT INTO {self.table_combo.get()} VALUES{tuple(insert_value)}')  
-        self.connection.commit()
-        self.listBox.insert('', tk.END, text=str(self.cursor.lastrowid), values=tuple(insert_value))
-        self.update_listbox()
-        
-    def delete(self):
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-        delete_value = {}
-        condition = ''
-        table_columns = self.cursor.fetchall()
-        for i in range(len(table_columns)):
-            delete_value[table_columns[i][0]] = self.entry[i].get()
-            if delete_value[table_columns[i][0]] != '' and condition=='':
-                condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-            elif delete_value[table_columns[i][0]] != '':
-                condition = condition + ' AND ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-        self.cursor.execute(f'DELETE FROM {self.table_combo.get()} WHERE {condition}')  
-        self.connection.commit()
-        # except:
-        #     warning_window = tk.Toplevel()
-        #     warning_window.wm_title("Warning")
-        #     warning_window.geometry('500x100')
-        #     warning_window.configure(background='white')
-        #     warning_label = tk.Label(warning_window, 
-        #                              text='Please enter condition for deletion!', font=self.font_style)
-        #     warning_label.configure(background = 'white')
-        #     warning_label.place(x=20, y=20, width=460)
-        self.update_listbox()
-    
-    def update(self):
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-        update_value = {}
-        condition = ''
-        table_columns = self.cursor.fetchall()
-        for i in range(1, len(table_columns)):
-            update_value[table_columns[i][0]] = self.entry[i].get()
-            if condition=='':
-                condition = condition + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-            elif update_value[table_columns[i][0]] != '':
-                condition = condition + ', ' + str(f'{table_columns[i][0]}="{self.entry[i].get()}"')
-        self.cursor.execute(f'UPDATE {self.table_combo.get()} SET {condition} WHERE {table_columns[0][0]}="{self.entry[0].get()}"')
-        self.connection.commit()
-        self.update_listbox()
     
     def on_listbox_select(self, event):
         try:
@@ -350,14 +325,12 @@ class ButtonInterface(object):
             warning_label.configure(background = 'white')
             warning_label.place(x=20, y=20, width=460)
             
-    def update_listbox(self):
+    def display_result(self):
         self.listBox.delete(*self.listBox.get_children())
         # Display select table
-        self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
-        table_columns = self.cursor.fetchall()
-        self.listBox.config(columns=table_columns)
-        for i in range(len(table_columns)):
-            self.listBox.heading(i, text=table_columns[i][0])
+        self.listBox.config(columns=self.table_columns)
+        for i in range(len(self.table_columns)):
+            self.listBox.heading(i, text=self.table_columns[i][0])
             self.listBox.column(i, stretch='True', anchor='center', width='190')
         self.cursor.execute(f'SELECT * FROM {self.table_combo.get()}')
         table_result = self.cursor.fetchall()
@@ -386,12 +359,12 @@ class QueryInterface(object):
         
         # Query button
         self.query_button = tk.Button(window, text="Send Query", font=self.font_style, command=self.send_query)
-        self.query_button.place(x=20, y=170, width=760)
+        self.query_button.place(x=20, y=170, height=30, width=760)
         
         # Query status
         self.status_label = tk.Label(window, text='', font=self.font_style)
         self.status_label.configure(background = 'white')
-        self.status_label.place(x=20, y=220, width=760)
+        self.status_label.place(x=20, y=220, height=30, width=760)
         
         # Result field
         self.result = tk.Label(window, text='Result', font=self.font_style)
@@ -433,30 +406,3 @@ class QueryInterface(object):
         # except:
         #     self.status_label.configure(text = 'Query Failed')
         #     self.status_label.configure(background = 'orange red', fg='white')
-        
-class DatabaseInterface(object):
-    def __init__(self, window, connection, cursor):
-        self.connection = connection
-        self.cursor = cursor
-
-        # Set the window title 
-        window.wm_title("Database Interface")
-        window.geometry('800x200')
-        window.configure(background='white')
-        self.font_style = font.Font(family='Calibri', size=15)
-        
-        # Select button
-        self.query_button = tk.Button(window, text="Query", font=self.font_style, command=self.query)
-        self.query_button.place(x=275, y=100)
-        self.button_button = tk.Button(window, text="Button", font=self.font_style, command=self.button)
-        self.button_button.place(x=425, y=100)
-        
-        self.choose_label = tk.Label(window, text="Please choose a way for SQL:", font=self.font_style)
-        self.choose_label.place(x=190, y=40, width=400)
-        self.choose_label.configure(background='white')
-    
-    def query(self):
-        QueryInterface(self.connection, self.cursor, self.font_style)
-        
-    def button(self):
-        ButtonInterface(self.connection, self.cursor, self.font_style)

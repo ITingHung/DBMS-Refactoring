@@ -22,17 +22,6 @@ class InWindow(SubWindow):
                                          values=[table_columns[i][0] for i in range(len(table_columns))])        
         self.column_combo.place(x=200, y=60, height=30, width=150)
         
-        # Display selected table in listbox
-        self.listBox.config(columns=table_columns)
-        for i in range(len(table_columns)):
-            self.listBox.heading(i, text=table_columns[i][0])
-            self.listBox.column(i, stretch='True', anchor='center', width='190')
-        self.cursor.execute(f'SELECT * FROM {table_name}')
-        table_result = self.cursor.fetchall()
-        if table_result:
-            for row in table_result:
-                self.listBox.insert('', 'end', values=row)
-  
         # Send query button
         self.send_button = tk.Button(self.window, text='Send', command=self.send_query, font=self.font_style)
         self.send_button.place(x=720, y=60, height=30, width=60)
