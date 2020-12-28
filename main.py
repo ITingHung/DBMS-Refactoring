@@ -1,7 +1,7 @@
 import tkinter as tk
 import pymysql
 
-from interface import DatabaseInterface
+from interface import DatabaseWindow
 
 # Create the GUI and pass it to our App class
 class ConnectWorkbench(object):

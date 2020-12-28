@@ -1,8 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-class SubWindow(object):
-
+class Window(object):
     def __init__(self, connection, cursor, font_style):
         self.connection = connection
         self.cursor = cursor
