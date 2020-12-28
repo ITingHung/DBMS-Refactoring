@@ -1,16 +1,18 @@
 import tkinter as tk
 from tkinter import ttk
 
-from window import Window
-
-class SubWindow(Window):
+class SubWindow(object):
 
     def __init__(self, connection, cursor, font_style, table_name, window_title):
-        super().__init__(connection, cursor, font_style)
+        self.connection = connection
+        self.cursor = cursor
+        self.font_style = font_style
         self.table_name = table_name
         
+        self.window = tk.Toplevel()
         self.window.wm_title(window_title)
         self.window.geometry('800x400')
+        self.window.configure(background='white')
         
         self.table_label = tk.Label(self.window, text=f'Table: {table_name}', anchor='w', font=self.font_style)
         self.table_label.place(x=20, y=20, height=30, width=200)
@@ -40,10 +42,19 @@ class SubWindow(Window):
         self.cursor.execute(f'SHOW COLUMNS FROM {self.table_name}')
         self.table_columns = self.cursor.fetchall()
         self.display_result(f'SELECT * FROM {self.table_name}')
-
+        
     def display_result(self, query):
-        super().display_result(self.listBox, self.cursor, query)
-
+        self.listBox.config(columns=self.table_columns)
+        for i in range(len(self.table_columns)):
+            self.listBox.heading(i, text=self.table_columns[i][0])
+            self.listBox.column(i, stretch='True', anchor='center', width='190')
+        self.listBox.delete(*self.listBox.get_children())
+        self.cursor.execute(query)
+        table_result = self.cursor.fetchall()
+        if table_result:
+            for row in table_result:
+                self.listBox.insert('', 'end', values=row)
+    
     def send_query(self):
         pass
     

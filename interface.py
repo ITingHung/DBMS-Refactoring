@@ -4,8 +4,6 @@ from tkinter import font
 from tkinter.scrolledtext import ScrolledText
 import in_window, having_window, exist_window
 
-from window import Window
-
 class DatabaseInterface(object):
     def __init__(self, window, connection, cursor):
         self.connection = connection
@@ -119,11 +117,16 @@ class AggregateInterface(object):
         for i in range(len(self.column_combo)):
             self.column_combo[i].set('')
         
-class ButtonInterface(Window):
+class ButtonInterface(object):
     def __init__(self, connection, cursor, font_style):
-        super().__init__(connection, cursor, font_style)
+        self.connection = connection
+        self.cursor = cursor
+        self.font_style = font_style
+
+        self.window = tk.Toplevel()
         self.window.wm_title("Button Interface")
         self.window.geometry('800x700')
+        self.window.configure(background='white')
         
         # Combo
         self.combo_label = tk.Label(self.window, text="Table", font=self.font_style)
@@ -322,89 +325,84 @@ class ButtonInterface(Window):
             warning_label.configure(background = 'white')
             warning_label.place(x=20, y=20, width=460)
             
-    # def display_result(self):
-    #     self.listBox.delete(*self.listBox.get_children())
-    #     # Display select table
-    #     self.listBox.config(columns=self.table_columns)
-    #     for i in range(len(self.table_columns)):
-    #         self.listBox.heading(i, text=self.table_columns[i][0])
-    #         self.listBox.column(i, stretch='True', anchor='center', width='190')
-    #     self.cursor.execute(f'SELECT * FROM {self.table_combo.get()}')
-    #     table_result = self.cursor.fetchall()
-    #     if table_result:
-    #         for row in table_result:
-    #             self.listBox.insert('', 'end', values=row)
     def display_result(self):
-        super().display_result(self.listBox, self.cursor, 
-                               f'SELECT * FROM {self.table_combo.get()}')
+        self.listBox.delete(*self.listBox.get_children())
+        # Display select table
+        self.listBox.config(columns=self.table_columns)
+        for i in range(len(self.table_columns)):
+            self.listBox.heading(i, text=self.table_columns[i][0])
+            self.listBox.column(i, stretch='True', anchor='center', width='190')
+        self.cursor.execute(f'SELECT * FROM {self.table_combo.get()}')
+        table_result = self.cursor.fetchall()
+        if table_result:
+            for row in table_result:
+                self.listBox.insert('', 'end', values=row)
       
-class QueryInterface(Window):
+class QueryInterface(object):
     def __init__(self, connection, cursor, font_style):
-        super().__init__(connection, cursor, font_style)
-        self.window.wm_title("Query Interface")
-        self.window.geometry('800x600')
+        self.connection = connection
+        self.cursor = cursor
+        self.font_style = font_style
+        
+        window= tk.Toplevel()
+        window.wm_title("Query Interface")
+        window.geometry('800x600')
+        window.configure(background='white')
+        self.font_style = font.Font(family='Calibri', size=15)
         
         # Query field
-        self.query_label = tk.Label(self.window, text="Query", font=self.font_style)
+        self.query_label = tk.Label(window, text="Query", font=self.font_style)
         self.query_label.place(x=20, y=70, height=100, width=100)
         self.query_label.config(background='gray80')
-        self.query_entry = ScrolledText(self.window)
+        self.query_entry = ScrolledText(window)
         self.query_entry.place(x=120, y=70, height=100, width=660)
         
         # Query button
-        self.query_button = tk.Button(self.window, text="Send Query", font=self.font_style, command=self.send_query)
+        self.query_button = tk.Button(window, text="Send Query", font=self.font_style, command=self.send_query)
         self.query_button.place(x=20, y=170, height=30, width=760)
         
         # Query status
-        self.status_label = tk.Label(self.window, text='', font=self.font_style)
+        self.status_label = tk.Label(window, text='', font=self.font_style)
         self.status_label.configure(background = 'white')
         self.status_label.place(x=20, y=220, height=30, width=760)
         
         # Result field
-        self.result = tk.Label(self.window, text='Result', font=self.font_style)
+        self.result = tk.Label(window, text='Result', font=self.font_style)
         self.result.place(x=20, y=270, width=760)
         self.result.config(background='gray80')
-        self.listBox = ttk.Treeview(self.window, show='headings')
+        self.listBox = ttk.Treeview(window, show='headings')
         self.listBox.place(x=20, y=300, height=200, width=760)
         ## Rolling bar
         ### y-axis
-        self.yscroll = ttk.Scrollbar(self.window, orient=tk.VERTICAL, command=self.listBox.yview)
+        self.yscroll = ttk.Scrollbar(window, orient=tk.VERTICAL, command=self.listBox.yview)
         self.listBox.configure(yscrollcommand = self.yscroll.set)
         self.yscroll.place(x=780, y=300, height=180)
         ### x-axis
-        self.xscroll = ttk.Scrollbar(self.window, orient=tk.HORIZONTAL, command=self.listBox.xview)
+        self.xscroll = ttk.Scrollbar(window, orient=tk.HORIZONTAL, command=self.listBox.xview)
         self.listBox.configure(xscrollcommand = self.xscroll.set)
         self.xscroll.place(x=20, y=500, width=760)
         
     def send_query(self):
-        try:
-            # Setting the query
-            self.query = self.query_entry.get('1.0', tk.END)
-            # Send select statement
-            # self.cursor.execute(self.query)
-
-            self.display_result(self.query)
-
-            self.connection.commit()
-            
-            # # Display select table
-            # self.listBox.delete(*self.listBox.get_children())
-            # table_columns = self.cursor.description
-            # self.listBox.config(columns=table_columns)
-            # for i in range(len(table_columns)):
-            #     self.listBox.heading(i, text=table_columns[i][0])
-            #     self.listBox.column(i, stretch='True', anchor='center', width='190')
-            
-            # table_result = self.cursor.fetchall()
-            # if table_result:
-            #     for row in table_result:
-            #         self.listBox.insert('', 'end', values=row)
-            
-            self.status_label.configure(text = 'Query Success')
-            self.status_label.configure(background = 'chartreuse3', fg='white')
-        except:
-            self.status_label.configure(text = 'Query Failed')
-            self.status_label.configure(background = 'orange red', fg='white')
-
-    def display_result(self, query):
-        super().display_result(self.listBox, self.cursor, query)
+        self.listBox.delete(*self.listBox.get_children())
+        # Setting the query
+        self.query = self.query_entry.get('1.0', tk.END)
+        # Send select statement
+        self.cursor.execute(self.query)
+        self.connection.commit()
+        # # Display select table
+        # table_columns = self.cursor.description
+        # self.listBox.config(columns=table_columns)
+        # for i in range(len(table_columns)):
+        #     self.listBox.heading(i, text=table_columns[i][0])
+        #     self.listBox.column(i, stretch='True', anchor='center', width='190')
+        
+        # table_result = self.cursor.fetchall()
+        # if table_result:
+        #     for row in table_result:
+        #         self.listBox.insert('', 'end', values=row)
+        
+        # self.status_label.configure(text = 'Query Success')
+        # self.status_label.configure(background = 'chartreuse3', fg='white')
+        # except:
+        #     self.status_label.configure(text = 'Query Failed')
+        #     self.status_label.configure(background = 'orange red', fg='white')
