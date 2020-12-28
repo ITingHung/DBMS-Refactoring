@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Dec 26 19:29:59 2020
-
-@author: polab
-"""
-
 import pymysql
 
 # Connect mysql
