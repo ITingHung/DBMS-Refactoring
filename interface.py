@@ -86,12 +86,13 @@ class ButtonInterface(SubWindow):
         ## Result field
         self.result.place(x=20, y=440, width=760)
         self.listBox.place(x=20, y=470, height=200, width=760)
+        self.listBox.bind("<<TreeviewSelect>>", self.on_listbox_select)
         self.yscroll.place(x=780, y=470, height=180)
         self.xscroll.place(x=20, y=670, width=760)
         ## Query button
         self.query_button.place(x=720, y=220, height=50, width=60)
         self.query_button.config(state='disable')
-       
+        
         # Function file
         function_label = tk.Label(self.window, text="Function", font=self.font_style, background='goldenrod1')
         function_label.place(x=20, y=220, height=50, width=150) 
@@ -120,26 +121,25 @@ class ButtonInterface(SubWindow):
         self.in_display()
         self.having_display()
 
+        # Condition field
+        self.condition_label = tk.Label(self.window, font=self.font_style)
+        self.condition_label.place(x=20, y=90, height=30, width=760)
+        self.condition_label.config(background='white')
+        self.column_label = []
+        self.entry = []
+
     def initial_gui(self):
         # Get columns of the selected table
         self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
         self.table_columns = self.cursor.fetchall()
         
-        # Condition field
-        ## Label
-        self.condition_label = tk.Label(self.window, text='Condition', font=self.font_style)
-        self.condition_label.place(x=20, y=90, height=30, width=760)
-        self.condition_label.config(background='gray80')
-        self.label = []
-        for i in range(4):
-            self.label.append(tk.Label(self.window, text='', font=self.font_style))
-            self.label[i].place(x=20+190*(i), y=120, height=30, width=190)
-        ## Entry
-        text, self.entry = [], []
+        # Enable condition field
+        self.condition_label.configure(text='Condition', background='gray80')
+        self.clean_value() # Clean previous value
         for i in range(len(self.table_columns)):
-            self.label[i].config(text=self.table_columns[i][0])
-            text.append(tk.StringVar())
-            self.entry.append(tk.Entry(self.window, textvariable=text[i], font=self.font_style))
+            self.column_label.append(tk.Label(self.window, text=self.table_columns[i][0], font=self.font_style))
+            self.column_label[i].place(x=20+190*(i), y=120, height=30, width=190)
+            self.entry.append(tk.Entry(self.window, textvariable=tk.StringVar(), font=self.font_style))
             self.entry[i].place(x=20+190*(i), y=150, height=40, width=190)
         
         # Enable function buttons
@@ -148,13 +148,21 @@ class ButtonInterface(SubWindow):
         self.update_button.config(state='normal')
         self.aggregate_button.config(state='normal')
         self.query_button.config(state='normal')
-        ## Activate having_button if there is column in int type
+        ## Activate having_button only if there is column in int type
         for i in range(len(self.table_columns)):
             if self.table_columns[i][1]=='int':
                 self.having_button.config(state='normal')
         
-        # Result field
+        # Show record in result field
         self.display_result(f'SELECT * FROM {self.table_combo.get()}')
+
+    def clean_value(self):
+        for i in range(len(self.column_label)):
+            self.column_label[i].destroy()  
+        self.column_label = [] 
+        for i in range(len(self.entry)):
+            self.entry[i].delete(0, 'end')
+        self.entry = []
 
     def send_query(self):
         self.listBox.delete(*self.listBox.get_children())
@@ -172,17 +180,12 @@ class ButtonInterface(SubWindow):
             for row in table_result:
                 self.listBox.insert('', 'end', values=row)
     
-    def clean_value(self):    
-        for i in range(len(self.entry)):
-            self.entry[i].delete(0, 'end')
-    
     def insert_func(self):
         insert_value = []
         for i in range(len(self.entry)):
             insert_value.append(self.entry[i].get())
         self.cursor.execute(f'INSERT INTO {self.table_combo.get()} VALUES{tuple(insert_value)}')  
         self.connection.commit()
-        # self.listBox.insert('', tk.END, text=str(self.cursor.lastrowid), values=tuple(insert_value))
         self.display_result(f'SELECT * FROM {self.table_combo.get()}')
         
     def delete_func(self):
@@ -231,7 +234,7 @@ class ButtonInterface(SubWindow):
         self.having_button = tk.Button(self.window, text='Having', command=self.having_func, font=self.font_style)
         self.having_button.place(x=550, y=320, height=50, width=100)
         self.having_button.config(background='salmon')
-        ## Default state of having_button is disable
+        # Default state of having_button is disable
         self.having_button.config(state='disable')
             
     def having_func(self):
