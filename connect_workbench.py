@@ -3,8 +3,6 @@ import pymysql
 
 from ui import DatabaseWindow
 
-# Create the GUI and pass it to our App class
-
 
 class ConnectWorkbench(object):
     def __init__(self, ip, user, password, database):
