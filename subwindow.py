@@ -50,9 +50,6 @@ class SubWindow(object):
         self.display_result(f'SELECT * FROM {self.table_combo.get()}')
         self.initial_gui()
 
-    def initial_gui(self):
-        pass
-
     def display_result(self, query):
         # Display columns
         self.cursor.execute(query)
@@ -67,6 +64,9 @@ class SubWindow(object):
         if table_result:
             for row in table_result:
                 self.listBox.insert('', 'end', values=row)
+    
+    def initial_gui(self):
+        pass
 
     def send_query(self):
         pass
