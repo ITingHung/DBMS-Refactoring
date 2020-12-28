@@ -1,10 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 
-from subwindow import SubWindow
+from window import Window
 
-class ExistWindow(SubWindow):
-    
+class ExistWindow(Window):
     def __init__(self, connection, cursor, font_style):
         super().__init__(connection, cursor, font_style)
         self.window.wm_title('Exist')

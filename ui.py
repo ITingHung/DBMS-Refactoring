@@ -3,10 +3,16 @@ from tkinter import ttk
 from tkinter import font
 from tkinter.scrolledtext import ScrolledText
 
-import in_window, having_window, exist_window, aggregate_window
-from subwindow import SubWindow
+from window import Window
+from insert_func import InsertFunc
+from delete_func import DeleteFunc
+from update_func import UpdateFunc
+from exist_window import ExistWindow
+from in_window import InWindow
+from having_window import HavingWindow
+from aggregate_window import AggregateWindow
 
-class DatabaseInterface(object):
+class DatabaseWindow(object):
     def __init__(self, window, connection, cursor):
         self.connection = connection
         self.cursor = cursor
@@ -28,12 +34,12 @@ class DatabaseInterface(object):
         self.choose_label.configure(background='white')
     
     def query(self):
-        QueryInterface(self.connection, self.cursor, self.font_style)
+        QueryWindow(self.connection, self.cursor, self.font_style)
         
     def button(self):
-        ButtonInterface(self.connection, self.cursor, self.font_style)
+        ButtonWindow(self.connection, self.cursor, self.font_style)
 
-class QueryInterface(SubWindow):
+class QueryWindow(Window):
     def __init__(self, connection, cursor, font_style):
         super().__init__(connection, cursor, font_style)
         self.window.wm_title('Query Interface')
@@ -76,7 +82,7 @@ class QueryInterface(SubWindow):
     def clean_value(self):    
         self.query_entry.delete('1.0', tk.END)
 
-class ButtonInterface(SubWindow):
+class ButtonWindow(Window):
     def __init__(self, connection, cursor, font_style):
         super().__init__(connection, cursor, font_style)
         self.window.wm_title('Button Interface')
@@ -181,39 +187,14 @@ class ButtonInterface(SubWindow):
                 self.listBox.insert('', 'end', values=row)
     
     def insert_func(self):
-        insert_value = []
-        for i in range(len(self.entry)):
-            insert_value.append(self.entry[i].get())
-        self.cursor.execute(f'INSERT INTO {self.table_combo.get()} VALUES{tuple(insert_value)}')  
-        self.connection.commit()
-        self.display_result(f'SELECT * FROM {self.table_combo.get()}')
+        InsertFunc(self)
         
     def delete_func(self):
-        delete_value = {}
-        condition = ''
-        for i in range(len(self.table_columns)):
-            delete_value[self.table_columns[i][0]] = self.entry[i].get()
-            if delete_value[self.table_columns[i][0]] != '' and condition=='':
-                condition = condition + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
-            elif delete_value[self.table_columns[i][0]] != '':
-                condition = condition + ' AND ' + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
-        self.cursor.execute(f'DELETE FROM {self.table_combo.get()} WHERE {condition}')  
-        self.connection.commit()
-        self.display_result(f'SELECT * FROM {self.table_combo.get()}')
-    
+        DeleteFunc(self)
+        
     def update_func(self):
-        update_value = {}
-        condition = ''
-        for i in range(1, len(self.table_columns)):
-            update_value[self.table_columns[i][0]] = self.entry[i].get()
-            if condition=='':
-                condition = condition + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
-            elif update_value[self.table_columns[i][0]] != '':
-                condition = condition + ', ' + str(f'{self.table_columns[i][0]}="{self.entry[i].get()}"')
-        self.cursor.execute(f'UPDATE {self.table_combo.get()} SET {condition} WHERE {self.table_columns[0][0]}="{self.entry[0].get()}"')
-        self.connection.commit()
-        self.display_result(f'SELECT * FROM {self.table_combo.get()}')
-    
+        UpdateFunc(self)
+        
     def exist_display(self):
         self.exist_button = tk.Button(self.window, text='Exist', command=self.exist_func, font=self.font_style)
         self.exist_button.place(x=150, y=320, height=50, width=100)
