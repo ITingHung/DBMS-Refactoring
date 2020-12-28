@@ -1,7 +1,7 @@
 import tkinter as tk
 import pymysql
 
-from interface import DatabaseWindow
+from ui import DatabaseWindow
 
 # Create the GUI and pass it to our App class
 

@@ -1,10 +1,14 @@
 class ModifiyFunc(object):
     def __init__(self, window):
-        query = self.get_query(window)
-
-        window.cursor.execute(query)
-        window.connection.commit()
-        window.display_result(f'SELECT * FROM {window.table_combo.get()}')
+        self.window = window
+        self.query = self.get_query(window)
+        self.modify()
 
     def get_query(self, window):
         pass
+
+    def modify(self):
+        self.window.cursor.execute(self.query)
+        self.window.connection.commit()
+        self.window.display_result(f'SELECT * FROM {self.window.table_combo.get()}')
+
