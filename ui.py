@@ -105,7 +105,6 @@ class ButtonWindow(Window):
         self.xscroll.place(x=20, y=670, width=760)
         # Query button
         self.query_button.place(x=720, y=220, height=50, width=60)
-        self.query_button.config(state='disable')
 
         # Function file
         function_label = tk.Label(
@@ -169,7 +168,6 @@ class ButtonWindow(Window):
         self.delete_button.config(state='normal')
         self.update_button.config(state='normal')
         self.aggregate_button.config(state='normal')
-        self.query_button.config(state='normal')
         # Activate having_button only if there is column in int type
         for i in range(len(self.table_columns)):
             if self.table_columns[i][1] == 'int':

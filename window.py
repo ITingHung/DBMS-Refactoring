@@ -45,17 +45,21 @@ class Window(object):
         self.query_button = tk.Button(
             self.window, text='Query', command=self.send_query, font=self.font_style)
         self.query_button.configure(background='light sky blue')
+        self.query_button.config(state='disable')
 
         # Clean input
         self.clean_button = tk.Button(
             self.window, text="Clean", font=self.font_style, command=self.clean_value)
         self.clean_button.place(x=630, y=20, height=30, width=150)
         self.clean_button.configure(background='white')
+        self.clean_button.config(state='disable')
 
     def table_selected(self, event):
         self.cursor.execute(f'SHOW COLUMNS FROM {self.table_combo.get()}')
         self.table_columns = self.cursor.fetchall()
         self.display_result(f'SELECT * FROM {self.table_combo.get()}')
+        self.query_button.config(state='normal') # Enable query button
+        self.clean_button.config(state='normal') # Enable clean button
         self.initial_gui()
 
     def display_result(self, query):
