@@ -1,3 +1,4 @@
+import abc
 import tkinter as tk
 from tkinter import ttk
 
@@ -75,9 +76,11 @@ class Window(object):
 
     def initial_gui(self):
         pass
-
+    
+    @abc.abstractmethod
     def send_query(self):
         pass
 
+    @abc.abstractmethod
     def clean_value(self):
         pass
